@@ -1,3 +1,9 @@
+CREATE DATABASE IF NOT EXISTS puzzle13_db
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE puzzle13_db;
+
 -- USERS
 CREATE TABLE users (
   id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
