@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 const { use } = require('react');
 
-const JWT_SECRET = "process.env.JWT_SECRET";    // 알아내서 .env 수정해야 됨.
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';    // 알아내서 .env 수정해야 됨.
 
 // 아이디 중복 확인
 async function checkUsername(req, res) {

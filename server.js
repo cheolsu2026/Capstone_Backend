@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const routes = require('./routes');
@@ -15,7 +16,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.use('/', routes);
 
-app.listen(PORT, HOST, () => { // 로컬 사용 시 3000, ()로 바꾸기
-    console.log(`서버 실행 중: http://${HOST}:${PORT}`);
-    // console.log(`서버 실행 중: http://localhost:3000`);
+app.listen(/* PORT, HOST */3000, () => { // 로컬 사용 시 3000, ()로 바꾸기
+    // console.log(`서버 실행 중: http://${HOST}:${PORT}`);
+    console.log(`서버 실행 중: http://localhost:3000`);
 });
