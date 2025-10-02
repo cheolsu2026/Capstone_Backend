@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 const { use } = require('react');
 
-const JWT_SECRET = "process.env.JWT_SECRET";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // 아이디 중복 확인
 async function checkUsername(req, res) {
@@ -108,8 +108,11 @@ async function changePassword(req, res) {
     }
 }
 
-module.exports = { // 이거 추가 기준이 뭔지
+module.exports = {
     checkUsername,
     signup,
     login,
+    getProfile,
+    changeNickname,
+    changePassword
 };
