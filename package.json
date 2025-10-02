@@ -18,11 +18,14 @@
   "homepage": "https://github.com/cheolsu2026/Capstone_Backend#readme",
   "description": "",
   "dependencies": {
+    "aws-sdk": "^2.1692.0",
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.5",
-    "react": "^19.1.1"
+    "react": "^19.1.1",
+    "uuid": "^13.0.0"
   }
 }
