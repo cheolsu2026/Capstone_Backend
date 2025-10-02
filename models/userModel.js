@@ -51,4 +51,7 @@ async function updatePassword(userId, newPasswordHash) {
 module.exports = {
     findByUsername,
     createUser,
+    findById,
+    updateNickname,
+    updatePassword,
 }
