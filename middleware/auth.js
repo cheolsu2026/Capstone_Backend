@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
 
 // JWT 토큰 검증 미들웨어
@@ -30,5 +31,4 @@ function authMiddleware(req, res, next) {
 module.exports = {
     authMiddleware
 };
-
 
