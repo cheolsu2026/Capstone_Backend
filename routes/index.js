@@ -19,7 +19,7 @@ router.post('/users/signup', userController.signup);
 // 로그인
 router.post('/users/login', userController.login);
 // (본인) 프로필 조회
-router.get('/user/profile', authMiddleware, userController.getProfile);
+router.get('/users/profile', authMiddleware, userController.getProfile);
 // 닉네임 변경
 router.put('/users/nickname', authMiddleware, userController.changeNickname);
 // 비밀번호 변경

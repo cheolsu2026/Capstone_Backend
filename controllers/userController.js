@@ -89,7 +89,7 @@ async function changeNickname(req, res) {
 // 비밀번호 변경
 async function changePassword(req, res) {
     try {
-        const userId = res.user.id;
+        const userId = req.user.id;
         const { oldPassword, newPassword } = req.body;
         const user = await userModel.findById(userId);
         const match = await bcrypt.compare(oldPassword, user.password_hash);

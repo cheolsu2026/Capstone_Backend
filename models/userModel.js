@@ -24,7 +24,7 @@ async function createUser(username, passwordHash, nickname) {
 // (본인) 프로필 조회
 async function findById(userId) {   // id로 유저 찾음
     const [rows] = await pool.query(
-        'SELECT id, username, nickname, created_at FROM users WHERE id = ?',
+        'SELECT id, username, nickname, password_hash, created_at FROM users WHERE id = ?',
         [userId]
     );
     return rows[0];
