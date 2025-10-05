@@ -16,7 +16,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 app.use('/', routes);
 
-app.listen(3000/*PORT, HOST*/, () => { // 로컬 사용 시 3000, ()로 바꾸기
-    //console.log(`서버 실행 중: http://${HOST}:${PORT}`);
-    console.log(`서버 실행 중: http://localhost:3000`);
+app.listen(PORT, HOST, () => { // 로컬 사용 시 3000, ()로 바꾸기
+    console.log(`서버 실행 중: http://${HOST}:${PORT}`);
+    // console.log(`서버 실행 중: http://localhost:3000`);
 });
