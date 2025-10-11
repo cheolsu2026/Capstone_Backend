@@ -18,7 +18,7 @@
   "homepage": "https://github.com/cheolsu2026/Capstone_Backend#readme",
   "description": "",
   "dependencies": {
-    "aws-sdk": "^2.1692.0",
+    "@aws-sdk/client-s3": "^3.906.0",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
