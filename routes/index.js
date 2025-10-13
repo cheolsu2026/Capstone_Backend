@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const gameController = require('../controllers/gameController'); 
+const gameController = require('../controllers/gameController');
 const { authMiddleware } = require('../middleware/auth');
 
 router.get('/', (req, res) => {
     res.json({ message: '라우트 작동 중'});
 });
 
-router.post('/login', (req, res) => {
+/*router.post('/login', (req, res) => {
     res.json({ message: '테스트용 로그인 성공'});
-})
+})*/
 
 // 아이디 중복 확인
 router.get('/users/check-username', userController.checkUsername);
@@ -32,5 +32,6 @@ router.post('/games/single/start', authMiddleware, gameController.startSingleGam
 // 개인플레이 게임 완료
 router.post('/games/single/complete', authMiddleware, gameController.completeSingleGame);
 
+router.use('/planets', require('./planets'));
 
 module.exports = router;
