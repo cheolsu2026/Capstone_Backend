@@ -164,6 +164,33 @@ class WebSocketService {
         }
     }
 
+    // 게임 시작 브로드캐스트
+    async broadcastGameStart(roomId, gameData) {
+        const roomSockets = this.roomConnections.get(roomId);
+        if (roomSockets && roomSockets.size > 0) {
+            this.io.to(roomId).emit('game_started', {
+                gameId: gameData.gameId,
+                gameCode: gameData.gameCode,
+                participants: gameData.participants,
+                message: "게임이 시작되었습니다!"
+            });
+        }
+    }
+
+    // 게임 완료 브로드캐스트
+    async broadcastGameComplete(roomId, gameData) {
+        const roomSockets = this.roomConnections.get(roomId);
+        if (roomSockets && roomSockets.size > 0) {
+            this.io.to(roomId).emit('game_completed', {
+                gameId: gameData.gameId,
+                gameCode: gameData.gameCode,
+                winner: gameData.winner,
+                gameStatus: gameData.gameStatus,
+                message: "게임이 완료되었습니다!"
+            });
+        }
+    }
+
     // 특정 사용자에게 메시지 전송
     sendToUser(userId, event, data) {
         const socketId = this.userSockets.get(userId);
