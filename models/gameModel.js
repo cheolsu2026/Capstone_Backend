@@ -142,6 +142,73 @@ async function updateRoomStatus(roomId, status) {
     return result.affectedRows;
 }
 
+// 게임 코드로 룸 조회
+async function findRoomByCode(gameCode) {
+    const [rows] = await pool.query(
+        `SELECT id, host_id, code, status FROM rooms WHERE code = ? AND status = 'waiting'`,
+        [gameCode]
+    );
+    
+    return rows[0];
+}
+
+// 룸 참가자 목록 조회
+async function getRoomParticipants(roomId) {
+    const [rows] = await pool.query(
+        `SELECT rp.user_id, rp.is_ready, rp.is_host, u.username 
+         FROM room_participants rp 
+         JOIN users u ON rp.user_id = u.id 
+         WHERE rp.room_id = ? 
+         ORDER BY rp.joined_at ASC`,
+        [roomId]
+    );
+    
+    return rows;
+}
+
+// 사용자가 이미 룸에 참가했는지 확인
+async function isUserInRoom(roomId, userId) {
+    const [rows] = await pool.query(
+        `SELECT id FROM room_participants WHERE room_id = ? AND user_id = ?`,
+        [roomId, userId]
+    );
+    
+    return rows.length > 0;
+}
+
+// 룸 참가자 수 확인
+async function getRoomParticipantCount(roomId) {
+    const [rows] = await pool.query(
+        `SELECT COUNT(*) as count FROM room_participants WHERE room_id = ?`,
+        [roomId]
+    );
+    
+    return rows[0].count;
+}
+
+// 사용자 준비 상태 토글
+async function toggleUserReady(roomId, userId) {
+    // 현재 준비 상태 조회
+    const [current] = await pool.query(
+        `SELECT is_ready FROM room_participants WHERE room_id = ? AND user_id = ?`,
+        [roomId, userId]
+    );
+    
+    if (current.length === 0) {
+        throw new Error('사용자가 해당 방에 참가하지 않았습니다');
+    }
+    
+    // 준비 상태 토글
+    const newReadyState = !current[0].is_ready;
+    
+    const [result] = await pool.query(
+        `UPDATE room_participants SET is_ready = ? WHERE room_id = ? AND user_id = ?`,
+        [newReadyState, roomId, userId]
+    );
+    
+    return { isReady: newReadyState, affectedRows: result.affectedRows };
+}
+
 module.exports = {
     generateRoomCode,
     createRoom,
@@ -154,5 +221,10 @@ module.exports = {
     findGameImage,
     saveGameCompletion,
     updateGameFinishedAt,
-    updateRoomStatus
+    updateRoomStatus,
+    findRoomByCode,
+    getRoomParticipants,
+    isUserInRoom,
+    getRoomParticipantCount,
+    toggleUserReady
 };
