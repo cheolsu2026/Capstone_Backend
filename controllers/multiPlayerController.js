@@ -236,7 +236,7 @@ async function joinRoom(req, res) {
 
         // 웹소켓으로 다른 참가자들에게 알림
         if (global.wsService) {
-            await global.wsService.broadcastRoomUpdate(room.id, participants);
+            await global.wsService.broadcastRoomUpdate(room.id, participants, room.code);
         }
 
         // 성공 응답
@@ -312,7 +312,7 @@ async function toggleReady(req, res) {
 
         // 웹소켓으로 다른 참가자들에게 알림
         if (global.wsService) {
-            await global.wsService.broadcastRoomUpdate(room.id, participants);
+            await global.wsService.broadcastRoomUpdate(room.id, participants, room.code);
         }
 
         // 성공 응답
