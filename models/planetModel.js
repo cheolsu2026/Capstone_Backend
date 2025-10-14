@@ -130,6 +130,27 @@ async function findFavorites(userId) {
     return rows;
 }
 
+// 사용자의 행성 조회
+async function findByOwnerId(ownerId) {
+    const [rows] = await pool.query(
+        `SELECT p.*, u.nickname AS ownerNickname
+        FROM planets p
+        JOIN users u ON p.owner_id = u.id
+        WHERE p.owner_id = ?`,
+        [ownerId]
+    );
+    return rows[0];
+}
+
+// 게임 이미지를 행성 갤러리에 저장
+async function saveGameImageToGallery(planetId, imageId, title) {
+    const [result] = await pool.query(
+        `INSERT INTO galleries (planet_id, image_id, title) VALUES (?, ?, ?)`,
+        [planetId, imageId, title]
+    );
+    return result.insertId;
+}
+
 module.exports = {
     findAll,
     findById,
@@ -142,4 +163,6 @@ module.exports = {
     removeFavorite,
     findFavorites,
     createPlanetWithConnection,
+    findByOwnerId,
+    saveGameImageToGallery,
 };

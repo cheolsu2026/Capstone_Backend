@@ -32,18 +32,22 @@ router.put('/users/password', authMiddleware, userController.changePassword);
 router.post('/games/single/start', authMiddleware, singlePlayerController.startSingleGame);
 // 개인플레이 게임 완료
 router.post('/games/single/complete', authMiddleware, singlePlayerController.completeSingleGame);
+// 개인플레이 완료 후 게임 이미지를 행성에 저장
+router.post('/games/single/save-to-planet', authMiddleware, singlePlayerController.saveGameImageToPlanet);
 
 // 멀티플레이 게임 관련 라우트
 // 방 생성
-router.post('/games/multiply/rooms/create', authMiddleware, multiPlayerController.createRoom);
+router.post('/games/multiplay/rooms/create', authMiddleware, multiPlayerController.createRoom);
 // 방 입장
-router.post('/games/multiply/rooms/join', authMiddleware, multiPlayerController.joinRoom);
+router.post('/games/multiplay/rooms/join', authMiddleware, multiPlayerController.joinRoom);
 // 준비 상태 토글
-router.post('/games/multiply/rooms/ready', authMiddleware, multiPlayerController.toggleReady);
+router.post('/games/multiplay/rooms/ready', authMiddleware, multiPlayerController.toggleReady);
 // 게임 시작
-router.post('/games/multiply/rooms/start', authMiddleware, multiPlayerController.startGame);
+router.post('/games/multiplay/rooms/start', authMiddleware, multiPlayerController.startGame);
 // 게임 완료
-router.post('/games/multiply/rooms/complete', authMiddleware, multiPlayerController.completeGame);
+router.post('/games/multiplay/rooms/complete', authMiddleware, multiPlayerController.completeGame);
+// 멀티플레이 완료 후 게임 이미지를 행성에 저장 (승자만 가능)
+router.post('/games/multiplay/save-to-planet', authMiddleware, multiPlayerController.saveGameImageToPlanet);
 
 router.use('/planets', require('./planets'));
 
