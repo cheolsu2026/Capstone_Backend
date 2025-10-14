@@ -1,6 +1,10 @@
-// db 레벨
-
 const pool = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
+
+// 커넥션 함수
+async function getConnection() {
+    return await pool.getConnection();
+}
 
 // 아이디 중복 확인
 async function findByUsername(username) {
@@ -19,6 +23,15 @@ async function createUser(username, passwordHash, nickname) {
         [username, passwordHash, nickname]
     );
     return result.insertId;
+}
+async function createUserWithConnection(conn, username, passwordHash, nickname) {
+    const id = uuidv4();
+    await conn.query(
+        `INSERT INTO users (id, username, password_hash, nickname) 
+        VALUES (?, ?, ?, ?)`,
+        [id, username, passwordHash, nickname]
+    );
+    return id;
 }
 
 // (본인) 프로필 조회
@@ -54,4 +67,6 @@ module.exports = {
     findById,
     updateNickname,
     updatePassword,
+    getConnection,
+    createUserWithConnection,
 }
