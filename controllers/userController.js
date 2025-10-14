@@ -1,8 +1,7 @@
-// 용도: 라우트 핸들러 = 비즈니스 로직(비밀번호 해싱, 토큰 발급)
-
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
+const planetModel = require('../models/planetModel');
 const { use } = require('react');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -17,17 +16,40 @@ async function checkUsername(req, res) {
 // 회원 가입
 async function signup(req, res) {
     const { username, password, nickname } = req.body;
+    let conn;
     try {
         const existing = await userModel.findByUsername(username);
         if (existing) {
             return res.status(400).json({ 에러: '사용 중인 아이디' });
         }
         const passwordHash = await bcrypt.hash(password, 10);
-        const userId = await userModel.createUser(username, passwordHash, nickname);
-        res.status(201).json({ 성공: true, userId });
+
+        const conn = await await userModel.getConnection();
+        await conn.beginTransaction();
+        const userId = await userModel.createUserWithConnection(conn, username, passwordHash, nickname);
+        
+        const planetTitle = `${nickname}의 행성`;
+        await planetModel.createPlanetWithConnection(conn, userId, planetTitle);
+
+        await conn.commit();
+        conn.release();
+
+        res.status(201).json({
+            isSuccess: true,
+            userId: userId,
+            message: '회원가입 & 행성 생성 성공',
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ 에러: '서버 오류' });
+        console.error('회원가입 오류: ', err);
+        if (conn) {
+            try {
+                await conn.rollback();
+                conn.release();
+            } catch (rollbackErr) {
+                console.error('롤백 오류: ', rollbackErr);
+            }
+        }
+        res.status(500).json({ error: '서버 오류' });
     }    
 }
 
