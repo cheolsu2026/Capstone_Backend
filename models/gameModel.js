@@ -121,6 +121,19 @@ async function findGameCompletion(gameId) {
     return rows[0];
 }
 
+// 게임 승자 확인
+async function findGameWinner(gameId) {
+    const [rows] = await pool.query(
+        `SELECT gc.user_id, gc.clear_time_ms, gc.completed_at, u.username
+         FROM game_completions gc
+         JOIN users u ON gc.user_id = u.id
+         WHERE gc.game_id = ? AND gc.winner = true`,
+        [gameId]
+    );
+    
+    return rows[0];
+}
+
 // 게임 완료 기록 저장
 async function saveGameCompletion(gameId, userId, imageId, clearTimeMs) {
     const [result] = await pool.query(
@@ -177,6 +190,19 @@ async function findRoomByCodeAnyStatus(gameCode) {
     const [rows] = await pool.query(
         `SELECT id, host_id, code, status FROM rooms WHERE code = ?`,
         [gameCode]
+    );
+    
+    return rows[0];
+}
+
+// 게임 코드로 룸과 게임 정보 조회
+async function findRoomAndGameByCode(gameCode, userId, mode = 'single') {
+    const [rows] = await pool.query(
+        `SELECT r.id, r.status, g.id as game_id, g.started_at 
+         FROM rooms r 
+         LEFT JOIN games g ON r.id = g.room_id AND g.user_id = ? AND g.mode = ?
+         WHERE r.code = ?`,
+        [userId, mode, gameCode]
     );
     
     return rows[0];
@@ -250,12 +276,14 @@ module.exports = {
     findRoomAndGame,
     findGameImage,
     findGameCompletion,
+    findGameWinner,
     saveGameCompletion,
     updateGameStartedAt,
     updateGameFinishedAt,
     updateRoomStatus,
     findRoomByCode,
     findRoomByCodeAnyStatus,
+    findRoomAndGameByCode,
     getRoomParticipants,
     isUserInRoom,
     getRoomParticipantCount,

@@ -1,6 +1,7 @@
 const pollinateService = require('../services/pollinateService');
 const s3Service = require('../services/s3Service');
 const gameModel = require('../models/gameModel');
+const planetModel = require('../models/planetModel');
 const pool = require('../config/db');
 
 // 단일 플레이 게임 시작
@@ -218,7 +219,100 @@ async function completeSingleGame(req, res) {
     }
 }
 
+// 개인플레이 완료 후 게임 이미지를 행성에 저장
+async function saveGameImageToPlanet(req, res) {
+    const connection = await pool.getConnection();
+    
+    try {
+        await connection.beginTransaction();
+        
+        const { gameCode, title } = req.body;
+        const userId = req.user.id; // JWT에서 추출한 사용자 ID
+
+        // 입력 검증
+        if (!gameCode) {
+            return res.status(400).json({
+                isSuccess: false,
+                code: "GAME400",
+                message: "gameCode가 필요합니다"
+            });
+        }
+
+        // 1. 게임 코드로 룸과 게임 존재 확인
+        const room = await gameModel.findRoomAndGameByCode(gameCode, userId, 'single');
+
+        if (!room) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "해당 게임 코드를 찾을 수 없습니다"
+            });
+        }
+        
+        if (!room.game_id) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "해당 게임을 찾을 수 없습니다"
+            });
+        }
+
+        // 2. 사용자의 행성 조회
+        const planet = await planetModel.findByOwnerId(userId);
+        
+        if (!planet) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "사용자의 행성을 찾을 수 없습니다"
+            });
+        }
+
+        // 3. 게임 이미지 조회
+        const image = await gameModel.findGameImage(room.game_id);
+
+        if (!image) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "게임 이미지를 찾을 수 없습니다"
+            });
+        }
+
+        // 4. 갤러리에 이미지 저장
+        const galleryTitle = title || `게임 이미지 ${new Date().toLocaleDateString()}`;
+        await planetModel.saveGameImageToGallery(planet.id, image.id, galleryTitle);
+
+        await connection.commit();
+
+        // 성공 응답
+        res.json({
+            isSuccess: true,
+            code: "GAME200",
+            message: "게임 이미지가 행성에 저장되었습니다",
+            result: {
+                planetId: planet.id,
+                imageUrl: image.image_url,
+                galleryTitle: galleryTitle
+            }
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('게임 이미지 행성 저장 오류:', error);
+        res.status(500).json({
+            isSuccess: false,
+            code: "GAME500",
+            message: "서버 오류가 발생했습니다",
+            error: error.message
+        });
+    } finally {
+        connection.release();
+    }
+}
+
 module.exports = {
     startSingleGame,
-    completeSingleGame
+    completeSingleGame,
+    saveGameImageToPlanet
 };

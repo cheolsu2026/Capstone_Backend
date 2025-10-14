@@ -1,5 +1,6 @@
 const gameModel = require('../models/gameModel');
 const userModel = require('../models/userModel');
+const planetModel = require('../models/planetModel');
 const pollinateService = require('../services/pollinateService');
 const s3Service = require('../services/s3Service');
 const pool = require('../config/db');
@@ -649,10 +650,135 @@ async function completeGame(req, res) {
     }
 }
 
+// 멀티플레이 완료 후 게임 이미지를 행성에 저장 (승자만 가능)
+async function saveGameImageToPlanet(req, res) {
+    const connection = await pool.getConnection();
+    
+    try {
+        await connection.beginTransaction();
+        
+        const { gameCode, title } = req.body;
+        const userId = req.user.id; // JWT에서 추출한 사용자 ID
+
+        // 입력 검증
+        if (!gameCode) {
+            return res.status(400).json({
+                isSuccess: false,
+                code: "GAME400",
+                message: "gameCode가 필요합니다"
+            });
+        }
+
+        // 1. 게임 코드로 룸과 게임 존재 확인
+        const room = await gameModel.findRoomAndGameByCode(gameCode, null, 'multi');
+
+        if (!room) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "해당 게임 코드를 찾을 수 없습니다"
+            });
+        }
+        
+        if (!room.game_id) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "해당 게임을 찾을 수 없습니다"
+            });
+        }
+
+        // 2. 게임이 완료되었는지 확인
+        if (room.status !== 'finished') {
+            return res.status(400).json({
+                isSuccess: false,
+                code: "GAME400",
+                message: "게임이 완료되지 않았습니다"
+            });
+        }
+
+        // 3. 게임 승자 확인
+        const winner = await gameModel.findGameWinner(room.game_id);
+        
+        if (!winner) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "게임 승자를 찾을 수 없습니다"
+            });
+        }
+
+        // 4. 요청한 사용자가 승자인지 확인
+        if (winner.user_id !== userId) {
+            return res.status(403).json({
+                isSuccess: false,
+                code: "GAME403",
+                message: "게임 승자만 이미지를 저장할 수 있습니다"
+            });
+        }
+
+        // 5. 사용자의 행성 조회
+        const planet = await planetModel.findByOwnerId(userId);
+        
+        if (!planet) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "사용자의 행성을 찾을 수 없습니다"
+            });
+        }
+
+        // 6. 게임 이미지 조회
+        const image = await gameModel.findGameImage(room.game_id);
+
+        if (!image) {
+            return res.status(404).json({
+                isSuccess: false,
+                code: "GAME404",
+                message: "게임 이미지를 찾을 수 없습니다"
+            });
+        }
+
+        // 7. 갤러리에 이미지 저장
+        const galleryTitle = title || `멀티플레이 승리 이미지 ${new Date().toLocaleDateString()}`;
+        await planetModel.saveGameImageToGallery(planet.id, image.id, galleryTitle);
+
+        await connection.commit();
+
+        // 성공 응답
+        res.json({
+            isSuccess: true,
+            code: "GAME200",
+            message: "멀티플레이 승리 이미지가 행성에 저장되었습니다",
+            result: {
+                planetId: planet.id,
+                imageUrl: image.image_url,
+                galleryTitle: galleryTitle,
+                gameCode: gameCode,
+                clearTimeMs: winner.clear_time_ms,
+                isWinner: true
+            }
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('멀티플레이 게임 이미지 행성 저장 오류:', error);
+        res.status(500).json({
+            isSuccess: false,
+            code: "GAME500",
+            message: "서버 오류가 발생했습니다",
+            error: error.message
+        });
+    } finally {
+        connection.release();
+    }
+}
+
 module.exports = {
     createRoom,
     joinRoom,
     toggleReady,
     startGame,
-    completeGame
+    completeGame,
+    saveGameImageToPlanet
 };
