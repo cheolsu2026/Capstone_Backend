@@ -3,7 +3,6 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const singlePlayerController = require('../controllers/singlePlayerController');
 const multiPlayerController = require('../controllers/multiPlayerController');
-const gameController = require('../controllers/gameController');
 const { authMiddleware } = require('../middleware/auth');
 
 router.get('/', (req, res) => {
