@@ -32,14 +32,23 @@ class WebSocketService {
                     this.userSockets.set(decoded.id, socket.id);
                     
                     socket.emit('authenticated', { 
-                        success: true, 
-                        userId: decoded.id,
-                        username: decoded.username 
+                        isSuccess: true,
+                        code: "WS200",
+                        message: "인증이 완료되었습니다",
+                        result: {
+                            userId: decoded.id,
+                            username: decoded.username 
+                        }
                     });
                     
                     console.log(`사용자 인증됨: ${decoded.username} (${socket.id})`);
                 } catch (error) {
-                    socket.emit('authenticated', { success: false, error: '인증 실패' });
+                    socket.emit('authenticated', { 
+                        isSuccess: false, 
+                        code: "WS401",
+                        message: "인증 실패",
+                        error: error.message 
+                    });
                     console.error('인증 오류:', error);
                 }
             });
@@ -47,51 +56,84 @@ class WebSocketService {
             // 방 입장
             socket.on('join_room', async (data) => {
                 try {
-                    const { roomId } = data;
+                    const { gameCode } = data;
                     
                     if (!socket.userId) {
-                        socket.emit('error', { message: '인증이 필요합니다' });
+                        socket.emit('error', { 
+                            isSuccess: false,
+                            code: "WS401",
+                            message: "인증이 필요합니다"
+                        });
+                        return;
+                    }
+
+                    // 게임 코드로 룸 조회
+                    const room = await gameModel.findRoomByCodeAnyStatus(gameCode);
+                    if (!room) {
+                        socket.emit('error', { 
+                            isSuccess: false,
+                            code: "WS404",
+                            message: "방을 찾을 수 없습니다"
+                        });
                         return;
                     }
 
                     // 방 존재 확인
-                    const participants = await gameModel.getRoomParticipants(roomId);
+                    const participants = await gameModel.getRoomParticipants(room.id);
                     if (participants.length === 0) {
-                        socket.emit('error', { message: '방을 찾을 수 없습니다' });
+                        socket.emit('error', { 
+                            isSuccess: false,
+                            code: "WS404",
+                            message: "방을 찾을 수 없습니다"
+                        });
                         return;
                     }
 
                     // 사용자가 방에 참가했는지 확인
                     const isInRoom = participants.some(p => p.user_id === socket.userId);
                     if (!isInRoom) {
-                        socket.emit('error', { message: '방에 참가하지 않았습니다' });
+                        socket.emit('error', { 
+                            isSuccess: false,
+                            code: "WS403",
+                            message: "방에 참가하지 않았습니다"
+                        });
                         return;
                     }
 
                     // 소켓을 방에 추가
-                    socket.join(roomId);
+                    socket.join(room.id);
                     
-                    if (!this.roomConnections.has(roomId)) {
-                        this.roomConnections.set(roomId, new Set());
+                    if (!this.roomConnections.has(room.id)) {
+                        this.roomConnections.set(room.id, new Set());
                     }
-                    this.roomConnections.get(roomId).add(socket.id);
+                    this.roomConnections.get(room.id).add(socket.id);
 
-                    socket.emit('room_joined', { roomId, success: true });
-                    
                     // 방의 다른 참가자들에게 새 참가자 알림
-                    socket.to(roomId).emit('user_joined', {
-                        userId: socket.userId,
-                        username: socket.username,
-                        participants: participants.map(p => ({
-                            userId: p.user_id,
-                            username: p.username,
-                            isReady: p.is_ready
-                        }))
+                    socket.to(room.id).emit('user_joined', {
+                        isSuccess: true,
+                        code: "WS200",
+                        message: "새로운 사용자가 입장했습니다",
+                        result: {
+                            userId: socket.userId,
+                            username: socket.username,
+                            gameCode: gameCode,
+                            participants: participants.map(p => ({
+                                userId: p.user_id,
+                                username: p.username,
+                                isReady: p.is_ready,
+                                isHost: p.is_host
+                            }))
+                        }
                     });
 
-                    console.log(`사용자 ${socket.username}이 방 ${roomId}에 입장했습니다`);
+                    console.log(`사용자 ${socket.username}이 방 ${room.id}에 입장했습니다`);
                 } catch (error) {
-                    socket.emit('error', { message: '방 입장 중 오류가 발생했습니다' });
+                    socket.emit('error', { 
+                        isSuccess: false,
+                        code: "WS500",
+                        message: "방 입장 중 오류가 발생했습니다",
+                        error: error.message
+                    });
                     console.error('방 입장 오류:', error);
                 }
             });
@@ -99,24 +141,34 @@ class WebSocketService {
             // 방 퇴장
             socket.on('leave_room', async (data) => {
                 try {
-                    const { roomId } = data;
+                    const { gameCode } = data;
                     
-                    socket.leave(roomId);
-                    
-                    if (this.roomConnections.has(roomId)) {
-                        this.roomConnections.get(roomId).delete(socket.id);
-                        if (this.roomConnections.get(roomId).size === 0) {
-                            this.roomConnections.delete(roomId);
+                    // 게임 코드로 룸 조회
+                    const room = await gameModel.findRoomByCodeAnyStatus(gameCode);
+                    if (room) {
+                        socket.leave(room.id);
+                        
+                        if (this.roomConnections.has(room.id)) {
+                            this.roomConnections.get(room.id).delete(socket.id);
+                            if (this.roomConnections.get(room.id).size === 0) {
+                                this.roomConnections.delete(room.id);
+                            }
                         }
+
+                        // 방의 다른 참가자들에게 퇴장 알림
+                        socket.to(room.id).emit('user_left', {
+                            isSuccess: true,
+                            code: "WS200",
+                            message: "사용자가 방을 떠났습니다",
+                            result: {
+                                userId: socket.userId,
+                                username: socket.username,
+                                gameCode: gameCode
+                            }
+                        });
+
+                        console.log(`사용자 ${socket.username}이 방 ${room.id}에서 퇴장했습니다`);
                     }
-
-                    // 방의 다른 참가자들에게 퇴장 알림
-                    socket.to(roomId).emit('user_left', {
-                        userId: socket.userId,
-                        username: socket.username
-                    });
-
-                    console.log(`사용자 ${socket.username}이 방 ${roomId}에서 퇴장했습니다`);
                 } catch (error) {
                     console.error('방 퇴장 오류:', error);
                 }
@@ -137,8 +189,13 @@ class WebSocketService {
                         
                         // 방의 다른 참가자들에게 연결 해제 알림
                         socket.to(roomId).emit('user_disconnected', {
-                            userId: socket.userId,
-                            username: socket.username
+                            isSuccess: true,
+                            code: "WS200",
+                            message: "사용자 연결이 해제되었습니다",
+                            result: {
+                                userId: socket.userId,
+                                username: socket.username
+                            }
                         });
                         
                         if (connections.size === 0) {
@@ -151,15 +208,22 @@ class WebSocketService {
     }
 
     // 방 업데이트 브로드캐스트
-    async broadcastRoomUpdate(roomId, participants) {
+    async broadcastRoomUpdate(roomId, participants, gameCode) {
         const roomSockets = this.roomConnections.get(roomId);
         if (roomSockets && roomSockets.size > 0) {
             this.io.to(roomId).emit('room_updated', {
-                participants: participants.map(p => ({
-                    userId: p.user_id,
-                    username: p.username,
-                    isReady: p.is_ready
-                }))
+                isSuccess: true,
+                code: "WS200",
+                message: "방 상태가 업데이트되었습니다",
+                result: {
+                    gameCode: gameCode,
+                    participants: participants.map(p => ({
+                        userId: p.user_id,
+                        username: p.username,
+                        isReady: p.is_ready,
+                        isHost: p.is_host
+                    }))
+                }
             });
         }
     }
@@ -169,10 +233,14 @@ class WebSocketService {
         const roomSockets = this.roomConnections.get(roomId);
         if (roomSockets && roomSockets.size > 0) {
             this.io.to(roomId).emit('game_started', {
-                gameId: gameData.gameId,
-                gameCode: gameData.gameCode,
-                participants: gameData.participants,
-                message: "게임이 시작되었습니다!"
+                isSuccess: true,
+                code: "WS200",
+                message: "게임이 시작되었습니다!",
+                result: {
+                    gameId: gameData.gameId,
+                    gameCode: gameData.gameCode,
+                    participants: gameData.participants
+                }
             });
         }
     }
@@ -182,11 +250,15 @@ class WebSocketService {
         const roomSockets = this.roomConnections.get(roomId);
         if (roomSockets && roomSockets.size > 0) {
             this.io.to(roomId).emit('game_completed', {
-                gameId: gameData.gameId,
-                gameCode: gameData.gameCode,
-                winner: gameData.winner,
-                gameStatus: gameData.gameStatus,
-                message: "게임이 완료되었습니다!"
+                isSuccess: true,
+                code: "WS200",
+                message: "게임이 완료되었습니다!",
+                result: {
+                    gameId: gameData.gameId,
+                    gameCode: gameData.gameCode,
+                    winner: gameData.winner,
+                    gameStatus: gameData.gameStatus
+                }
             });
         }
     }
