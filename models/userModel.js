@@ -61,6 +61,15 @@ async function updatePassword(userId, newPasswordHash) {
     return result.affectedRows > 0;
 }
 
+// 로그인 시 planetId 반환을 위한 userId 반환
+async function findPlanetByUserId(userId) {
+  const [rows] = await pool.query(
+    'SELECT id FROM planets WHERE owner_id = ? LIMIT 1',
+    [userId]
+  );
+  return rows[0];
+}
+
 module.exports = {
     findByUsername,
     createUser,
@@ -69,4 +78,5 @@ module.exports = {
     updatePassword,
     getConnection,
     createUserWithConnection,
+    findPlanetByUserId,
 }

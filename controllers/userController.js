@@ -65,12 +65,22 @@ async function login(req, res) {
         if (!isValid) {
             return res.status(400).json({ 에러: '아이디 또는 비밀번호가 잘못됨'});
         }
+
+        const planet = await userModel.findPlanetByUserId(user.id);
+        
         const token = jwt.sign(
             { id: user.id, username: user.username },
             JWT_SECRET,
             { expiresIn: '1h'}
         );
-        res.json({ token });
+
+        res.json({ 
+            token, 
+            userId: user.id,
+            planetId: planet ? planet.id : null,
+            nickname: user.nickname
+        });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ 에러: '서버 오류'});
