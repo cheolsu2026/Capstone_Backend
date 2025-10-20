@@ -34,7 +34,12 @@ async function getPlanetDetail(req, res) {
             isSuccess: true, 
             code: 200, 
             message: '행성 상세 조회 성공', 
-            result: planet 
+            result: {
+                id: planet.id,
+                owner_id: planet.owner_id, // 이걸 userId랑 비교해야 됨!!
+                title: planet.title,
+                visit_count: planet.visit_count
+            } 
         });
     } catch (err) {
         console.error('행성 상세 조회 오류: ', err);
@@ -52,6 +57,9 @@ async function visitPlanet(req, res) {
     const { planetId } = req.params;
     const visitorId = req.user.id;
     try {
+        if (planet.owner_id === req.user.id){
+            return res.status(400).json({ message: '자신의 행성은 방문 불가 = 방문 수 추가 안 됨' });
+        }
         await planetModel.addVisit(visitorId, planetId);
         res.json({
             isSuccess: true,
