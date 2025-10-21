@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const singlePlayerController = require('../controllers/singlePlayerController');
 const multiPlayerController = require('../controllers/multiPlayerController');
+const friendController = require('../controllers/friendController');
 const { authMiddleware } = require('../middleware/auth');
 
 router.get('/', (req, res) => {
@@ -25,6 +26,22 @@ router.get('/users/profile', authMiddleware, userController.getProfile);
 router.put('/users/nickname', authMiddleware, userController.changeNickname);
 // 비밀번호 변경
 router.put('/users/password', authMiddleware, userController.changePassword);
+
+// 친구 관련 라우트
+// 친구 요청 보내기
+router.post('/friends/request', authMiddleware, friendController.sendFriendRequest);
+// 친구 요청 수락
+router.post('/friends/accept', authMiddleware, friendController.acceptFriendRequest);
+// 친구 요청 거절
+router.post('/friends/reject', authMiddleware, friendController.rejectFriendRequest);
+// 받은 친구 요청 목록 조회
+router.get('/friends/received', authMiddleware, friendController.getReceivedFriendRequests);
+// 보낸 친구 요청 목록 조회
+router.get('/friends/sent', authMiddleware, friendController.getSentFriendRequests);
+// 친구 목록 조회
+router.get('/friends', authMiddleware, friendController.getFriends);
+// 친구 삭제
+router.delete('/friends', authMiddleware, friendController.removeFriend);
 
 
 // 개인플레이 게임 관련 라우트
