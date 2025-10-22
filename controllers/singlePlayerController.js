@@ -89,6 +89,7 @@ async function startSingleGame(req, res) {
             message: "AI 이미지 생성 성공",
             result: {
                 roomId: roomId,
+                gameCode: roomCode,
                 imageUrl: uploadResult.imageUrl
             }
         });
@@ -114,15 +115,15 @@ async function completeSingleGame(req, res) {
     try {
         await connection.beginTransaction();
         
-        const { roomId, startTime, endTime } = req.body;
+        const { gameCode, startTime, endTime } = req.body;
         const userId = req.user.id; // JWT에서 추출한 사용자 ID
 
         // 입력 검증
-        if (!roomId || !startTime || !endTime) {
+        if (!gameCode || !startTime || !endTime) {
             return res.status(400).json({
                 isSuccess: false,
                 code: "GAME400",
-                message: "roomId, startTime, endTime이 모두 필요합니다"
+                message: "gameCode, startTime, endTime이 모두 필요합니다"
             });
         }
 
@@ -149,14 +150,14 @@ async function completeSingleGame(req, res) {
         // 게임 시간 계산 (밀리초)
         const clearTimeMs = end.getTime() - start.getTime();
 
-        // 1. 룸과 게임 존재 확인
-        const room = await gameModel.findRoomAndGame(roomId, userId, 'single');
+        // 1. 게임 코드로 룸과 게임 존재 확인
+        const room = await gameModel.findRoomAndGameByCode(gameCode, userId, 'single');
 
         if (!room) {
             return res.status(404).json({
                 isSuccess: false,
                 code: "GAME404",
-                message: "해당 룸을 찾을 수 없습니다"
+                message: "해당 게임 코드를 찾을 수 없습니다"
             });
         }
         
@@ -194,7 +195,7 @@ async function completeSingleGame(req, res) {
         await gameModel.updateGameFinishedAt(room.game_id);
 
         // 5. 룸 상태 업데이트
-        await gameModel.updateRoomStatus(roomId, 'finished');
+        await gameModel.updateRoomStatus(room.id, 'finished');
 
         await connection.commit();
 
@@ -202,7 +203,14 @@ async function completeSingleGame(req, res) {
         res.json({
             isSuccess: true,
             code: "GAME200",
-            message: "클리어 기록 저장 성공"
+            message: "클리어 기록 저장 성공",
+            result: {
+                gameId: room.game_id,
+                gameCode: room.code,
+                clearTimeMs: clearTimeMs,
+                imageUrl: image.image_url,
+                gameStatus: "completed"
+            }
         });
 
     } catch (error) {
