@@ -10,10 +10,6 @@ router.get('/', (req, res) => {
     res.json({ message: '라우트 작동 중'});
 });
 
-/*router.post('/login', (req, res) => {
-    res.json({ message: '테스트용 로그인 성공'});
-})*/
-
 // 아이디 중복 확인
 router.get('/users/check-username', userController.checkUsername);
 // 회원 가입

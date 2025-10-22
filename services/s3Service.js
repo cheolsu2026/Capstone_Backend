@@ -1,20 +1,3 @@
-console.log("🔍 s3Service 로드 시도 중...");
-try {
-  const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-  console.log("✅ @aws-sdk/client-s3 로드 성공");
-} catch (err) {
-  console.error("❌ @aws-sdk/client-s3 로드 실패:", err);
-}
-
-try {
-  const { v4: uuidv4 } = require('uuid');
-  console.log("✅ uuid 로드 성공");
-} catch (err) {
-  console.error("❌ uuid 로드 실패:", err);
-}
-
-// 추후 삭제
-
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { v4: uuidv4 } = require('uuid');
 

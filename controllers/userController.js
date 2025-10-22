@@ -2,7 +2,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
 const planetModel = require('../models/planetModel');
-const { use } = require('react');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -24,7 +23,7 @@ async function signup(req, res) {
         }
         const passwordHash = await bcrypt.hash(password, 10);
 
-        const conn = await await userModel.getConnection();
+        const conn = await userModel.getConnection();
         await conn.beginTransaction();
         const userId = await userModel.createUserWithConnection(conn, username, passwordHash, nickname);
         
