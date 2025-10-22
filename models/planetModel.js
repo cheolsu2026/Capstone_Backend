@@ -39,7 +39,7 @@ async function getPlanetIdByUsername(username) {
 // 행성 상세 정보 조회 (username 기반)
 async function findByUsername(username) {
     const [rows] = await pool.query(
-        `SELECT p.*, u.nickname AS ownerNickname, u.username
+        `SELECT p.*, u.nickname AS ownerNickname, u.username, u.profile_image_url
         FROM planets p
         JOIN users u ON p.owner_id = u.id
         WHERE u.username = ?`,
@@ -108,7 +108,7 @@ async function addVisitByUsername(visitorId, username) {
 // 갤러리 목록 조회 (username 기반)
 async function findGalleryListByUsername(username) {
     const [rows] = await pool.query(
-        `SELECT g.id AS galleryId, g.title, gi.image_url, g.created_at
+        `SELECT g.id AS galleryId, g.title, gi.id AS imageId, gi.image_url, g.created_at
         FROM galleries g
         JOIN game_images gi ON g.image_id = gi.id
         JOIN planets p ON g.planet_id = p.id
@@ -122,8 +122,7 @@ async function findGalleryListByUsername(username) {
 // 갤러리 상세 조회 (username 기반)
 async function findGalleryDetailByUsername(username, imageId) {
     const [rows] = await pool.query(
-        `SELECT g.id AS galleryId, g.title, gi.image_url, gi.metadata, gi.generated_at,
-               gi.tag1, gi.tag2, gi.tag3, gi.tag4
+        `SELECT g.id AS galleryId, g.title, gi.image_url, gi.metadata, gi.generated_at
         FROM galleries g
         JOIN game_images gi ON g.image_id = gi.id
         JOIN planets p ON g.planet_id = p.id
@@ -236,7 +235,7 @@ async function updateMyPlanet(userId, title, profileImage) {
         // 프로필 이미지 수정 (users 테이블)
         if (profileImage) {
             await conn.query(
-                `UPDATE users SET profile_image = ? WHERE id = ?`,
+                `UPDATE users SET profile_image_url = ? WHERE id = ?`,
                 [profileImage, userId]
             );
         }
@@ -245,7 +244,7 @@ async function updateMyPlanet(userId, title, profileImage) {
         
         // 수정된 정보 조회
         const [planetRows] = await conn.query(
-            `SELECT p.*, u.username, u.profile_image
+            `SELECT p.*, u.username, u.profile_image_url
             FROM planets p
             JOIN users u ON p.owner_id = u.id
             WHERE p.owner_id = ?`,

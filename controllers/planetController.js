@@ -54,6 +54,7 @@ async function getPlanetByUsername(req, res) {
                 title: planet.title,
                 visitCount: planet.visit_count,
                 createdAt: planet.created_at,
+                profileImageUrl: planet.profile_image_url,
                 isOwner: isOwner, // 프론트엔드에서 권한 확인용
                 canEdit: isOwner // 수정 가능 여부
             } 
@@ -166,9 +167,6 @@ async function getGalleryDetailByUsername(req, res) {
             });
         }
         
-        // 태그 배열 생성 (null 값 제외)
-        const tags = [detail.tag1, detail.tag2, detail.tag3, detail.tag4].filter(tag => tag !== null);
-        
         res.json({
             isSuccess: true,
             code: 200,
@@ -179,9 +177,7 @@ async function getGalleryDetailByUsername(req, res) {
                 galleryId: detail.galleryId,
                 title: detail.title,
                 image_url: detail.image_url,
-                metadata: detail.metadata,
-                generated_at: detail.generated_at,
-                tags: tags
+                metadata: detail.metadata
             }
         });
     } catch (err) {
@@ -347,7 +343,7 @@ async function updateMyPlanet(req, res) {
                 title: updatedPlanet.title,
                 visitCount: updatedPlanet.visit_count,
                 createdAt: updatedPlanet.created_at,
-                profileImage: updatedPlanet.profile_image
+                profileImageUrl: updatedPlanet.profile_image_url
             }
         });
     } catch (err) {
