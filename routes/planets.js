@@ -7,6 +7,8 @@ const { authMiddleware, optionalAuthMiddleware } = require('../middleware/auth')
 router.get('/', planetController.getPlanetList);
 // 내 행성 정보 수정
 router.put('/me', authMiddleware, planetController.updateMyPlanet);
+// 내 즐겨찾기 목록 조회
+router.get('/favorites/me', authMiddleware, planetController.getFavorites);
 // 행성 상세 정보 조회 - 인증 선택적
 router.get('/:username', optionalAuthMiddleware, planetController.getPlanetByUsername);
 // 행성 방문 추가 

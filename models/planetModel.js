@@ -136,7 +136,7 @@ async function findGalleryDetailByUsername(username, imageId) {
 // 방명록 조회 (username 기반)
 async function findGuestbookListByUsername(username) {
     const [rows] = await pool.query(
-        `SELECT gb.id, gb.content, u.nickname AS authorNickname, gb.written_at
+        `SELECT gb.id, gb.content, u.username AS authorUsername, u.profile_image_url AS authorProfileImageUrl, gb.written_at
         FROM guestbooks gb
         JOIN users u ON gb.author_id = u.id
         JOIN planets p ON gb.planet_id = p.id
@@ -214,6 +214,21 @@ async function removeFavoriteByUsername(userId, username) {
     } finally {
         conn.release();
     }
+}
+
+// 즐겨찾기 목록 조회
+async function findFavoritesByUserId(userId) {
+    const [rows] = await pool.query(
+        `SELECT p.id AS planetId, u.username, p.title, p.visit_count, p.created_at, 
+               u.profile_image_url, pf.favorited_at
+        FROM planet_favorites pf
+        JOIN planets p ON pf.planet_id = p.id
+        JOIN users u ON p.owner_id = u.id
+        WHERE pf.user_id = ?
+        ORDER BY pf.favorited_at DESC`,
+        [userId]
+    );
+    return rows;
 }
 
 
@@ -296,4 +311,5 @@ module.exports = {
     addGuestbookByUsername,
     addFavoriteByUsername,
     removeFavoriteByUsername,
+    findFavoritesByUserId,
 };

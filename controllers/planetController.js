@@ -233,15 +233,6 @@ async function writeGuestbookByUsername(req, res) {
             });
         }
         
-        // 자신의 행성에 방명록 작성 방지
-        if (planet.owner_id === authorId) {
-            return res.status(400).json({
-                isSuccess: false,
-                code: 400,
-                message: '자신의 행성에는 방명록을 작성할 수 없습니다'
-            });
-        }
-        
         await planetModel.addGuestbookByUsername(username, authorId, content);
         res.status(201).json({
             isSuccess: true,
@@ -383,10 +374,35 @@ async function removeFavoriteByUsername(req, res) {
     }
 }
 
+// 즐겨찾기 목록 조회
+async function getFavorites(req, res) {
+    const userId = req.user.id;
+    
+    try {
+        const favorites = await planetModel.findFavoritesByUserId(userId);
+        res.json({
+            isSuccess: true,
+            code: 200,
+            message: '즐겨찾기 목록 조회 성공',
+            result: {
+                favorites: favorites
+            }
+        });
+    } catch (err) {
+        console.error('즐겨찾기 목록 조회 오류: ', err);
+        res.status(500).json({
+            isSuccess: false,
+            code: 500,
+            message: '서버 오류',
+            error: err.message
+        });
+    }
+}
+
 module.exports = {
     getPlanetList,
     updateMyPlanet,
-    // username 기반 함수들
+    getFavorites,
     getPlanetByUsername,
     visitPlanetByUsername,
     getGalleryListByUsername,
