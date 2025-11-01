@@ -123,6 +123,12 @@ async function changePassword(req, res) {
         const userId = req.user.id;
         const { oldPassword, newPassword } = req.body;
         const user = await userModel.findById(userId);
+
+        console.log("=== 비밀번호 변경 디버그 ===");
+        console.log("oldPassword:", oldPassword);
+        console.log("user.password_hash:", user.password_hash);
+        console.log("===========================");
+
         const match = await bcrypt.compare(oldPassword, user.password_hash);
         if (!match) {
             return res.status(400).json({ error: '기존 비밀번호가 틀림' });
