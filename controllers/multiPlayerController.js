@@ -593,8 +593,8 @@ async function completeGame(req, res) {
         // 9. 게임 완료 시간 업데이트
         await gameModel.updateGameFinishedAt(gameInfo.game_id);
 
-        // 10. 룸 상태를 'completed'로 변경
-        await gameModel.updateRoomStatus(room.id, 'completed');
+        // 10. 룸 상태를 'finished'로 변경
+        await gameModel.updateRoomStatus(room.id, 'finished');
 
         // 11. 승자 정보 조회
         const winnerInfo = await userModel.findById(userId);
