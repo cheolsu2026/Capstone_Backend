@@ -8,6 +8,20 @@ class WebSocketService {
             cors: {
                 origin: "*",
                 methods: ["GET", "POST"]
+            },
+            // 웹소켓 연결 타임아웃 설정 (기본값: pingTimeout 20초, pingInterval 25초)
+            // 인증 전 대기 시간을 고려하여 더 길게 설정
+            pingTimeout: 60000, // 60초 - 서버가 ping을 보낸 후 pong 응답을 기다리는 시간
+            pingInterval: 25000, // 25초 - 서버가 ping을 보내는 간격
+            connectTimeout: 45000, // 45초 - 연결 타임아웃
+            // transports 설정 - polling과 websocket 모두 허용
+            transports: ['polling', 'websocket'],
+            // 이전 버전 호환성
+            allowEIO3: true,
+            // 연결 상태 복구 (재연결 시 상태 유지)
+            connectionStateRecovery: {
+                maxDisconnectionDuration: 2 * 60 * 1000, // 2분
+                skipMiddlewares: true
             }
         });
         
@@ -20,6 +34,21 @@ class WebSocketService {
     setupEventHandlers() {
         this.io.on('connection', (socket) => {
             console.log('클라이언트 연결됨:', socket.id);
+            console.log('연결 정보:', {
+                id: socket.id,
+                transport: socket.conn.transport.name,
+                readyState: socket.conn.readyState
+            });
+
+            // 연결 성공 시 즉시 클라이언트에 알림 (타임아웃 방지)
+            socket.emit('connected', {
+                isSuccess: true,
+                code: "WS200",
+                message: "웹소켓 연결이 성공했습니다",
+                result: {
+                    socketId: socket.id
+                }
+            });
 
             // 인증 처리
             socket.on('authenticate', async (data) => {
@@ -174,9 +203,20 @@ class WebSocketService {
                 }
             });
 
+            // 연결 오류 처리
+            socket.on('error', (error) => {
+                console.error('소켓 오류:', socket.id, error);
+                socket.emit('error', {
+                    isSuccess: false,
+                    code: "WS500",
+                    message: "웹소켓 오류가 발생했습니다",
+                    error: error.message || error
+                });
+            });
+
             // 연결 해제 처리
-            socket.on('disconnect', () => {
-                console.log('클라이언트 연결 해제됨:', socket.id);
+            socket.on('disconnect', (reason) => {
+                console.log('클라이언트 연결 해제됨:', socket.id, '이유:', reason);
                 
                 if (socket.userId) {
                     this.userSockets.delete(socket.userId);
@@ -194,7 +234,8 @@ class WebSocketService {
                             message: "사용자 연결이 해제되었습니다",
                             result: {
                                 userId: socket.userId,
-                                username: socket.username
+                                username: socket.username,
+                                reason: reason
                             }
                         });
                         
