@@ -1,11 +1,11 @@
 const io = require('socket.io-client');
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://13.209.33.42:3000';
 
 // 테스트 계정 정보 (실제 계정으로 변경하세요)
 const USER1 = { username: 'test3', password: '1234' };
-const USER2 = { username: 'test4', password: '1234' };
+const USER2 = { username: 'test8', password: '1234' };
 
 // 테스트 결과 저장
 const results = {
@@ -44,6 +44,9 @@ async function main() {
     let gameCode;
     let socket1Events = [];
     let socket2Events = [];
+    // 전체 이벤트 누적 저장 (요약 출력용)
+    let socket1AllEvents = [];
+    let socket2AllEvents = [];
 
     // 1단계: 로그인 (사용자1)
     await test('1. 사용자1 로그인', async () => {
@@ -85,7 +88,9 @@ async function main() {
 
         // 웹소켓 이벤트 수집
         socket1.onAny((event, data) => {
-            socket1Events.push({ event, data, time: new Date() });
+            const eventData = { event, data, time: new Date() };
+            socket1Events.push(eventData);
+            socket1AllEvents.push(eventData); // 전체 이벤트에도 추가
             log(`[사용자1] 이벤트 수신: ${event}`, 'info');
         });
     })();
@@ -169,7 +174,9 @@ async function main() {
         });
 
         socket2.onAny((event, data) => {
-            socket2Events.push({ event, data, time: new Date() });
+            const eventData = { event, data, time: new Date() };
+            socket2Events.push(eventData);
+            socket2AllEvents.push(eventData); // 전체 이벤트에도 추가
             log(`[사용자2] 이벤트 수신: ${event}`, 'info');
         });
     })();
@@ -372,8 +379,23 @@ async function main() {
     });
 
     console.log('\n수신된 이벤트 요약:');
-    console.log('사용자1:', socket1Events.map(e => e.event).join(', '));
-    console.log('사용자2:', socket2Events.map(e => e.event).join(', '));
+    console.log('사용자1:', socket1AllEvents.map(e => e.event).join(', '));
+    console.log('사용자2:', socket2AllEvents.map(e => e.event).join(', '));
+    
+    // 이벤트별 상세 요약
+    console.log('\n이벤트별 상세 요약:');
+    const eventTypes1 = [...new Set(socket1AllEvents.map(e => e.event))];
+    const eventTypes2 = [...new Set(socket2AllEvents.map(e => e.event))];
+    console.log('사용자1 이벤트 종류:');
+    eventTypes1.forEach(eventType => {
+        const count = socket1AllEvents.filter(e => e.event === eventType).length;
+        console.log(`  - ${eventType}: ${count}회`);
+    });
+    console.log('사용자2 이벤트 종류:');
+    eventTypes2.forEach(eventType => {
+        const count = socket2AllEvents.filter(e => e.event === eventType).length;
+        console.log(`  - ${eventType}: ${count}회`);
+    });
 
     process.exit(results.failed > 0 ? 1 : 0);
 }
