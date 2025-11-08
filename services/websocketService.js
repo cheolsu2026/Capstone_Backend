@@ -52,15 +52,32 @@ class WebSocketService {
 
             // 인증 처리
             socket.on('authenticate', async (data) => {
+                console.log(`[WebSocket] authenticate 이벤트 수신 - socketId: ${socket.id}`);
+                console.log(`[WebSocket] authenticate 데이터:`, JSON.stringify(data));
+                
                 try {
+                    if (!data || !data.token) {
+                        console.error('[WebSocket] 인증 실패: 토큰이 없습니다');
+                        socket.emit('authenticated', { 
+                            isSuccess: false, 
+                            code: "WS400",
+                            message: "토큰이 필요합니다",
+                            error: "Token is required"
+                        });
+                        return;
+                    }
+
                     const { token } = data;
+                    console.log(`[WebSocket] JWT 토큰 검증 시작 - token length: ${token.length}`);
+                    
                     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                    console.log(`[WebSocket] JWT 토큰 검증 성공 - userId: ${decoded.id}, username: ${decoded.username}`);
                     
                     socket.userId = decoded.id;
                     socket.username = decoded.username;
                     this.userSockets.set(decoded.id, socket.id);
                     
-                    socket.emit('authenticated', { 
+                    const authResponse = { 
                         isSuccess: true,
                         code: "WS200",
                         message: "인증이 완료되었습니다",
@@ -68,17 +85,29 @@ class WebSocketService {
                             userId: decoded.id,
                             username: decoded.username 
                         }
-                    });
+                    };
                     
-                    console.log(`사용자 인증됨: ${decoded.username} (${socket.id})`);
+                    console.log(`[WebSocket] authenticated 이벤트 전송 시작 - socketId: ${socket.id}`);
+                    console.log(`[WebSocket] authenticated 응답 데이터:`, JSON.stringify(authResponse));
+                    
+                    socket.emit('authenticated', authResponse);
+                    
+                    console.log(`[WebSocket] authenticated 이벤트 전송 완료 - 사용자: ${decoded.username} (${socket.id})`);
                 } catch (error) {
-                    socket.emit('authenticated', { 
+                    console.error('[WebSocket] 인증 오류:', error);
+                    console.error('[WebSocket] 인증 오류 스택:', error.stack);
+                    
+                    const errorResponse = { 
                         isSuccess: false, 
                         code: "WS401",
                         message: "인증 실패",
                         error: error.message 
-                    });
-                    console.error('인증 오류:', error);
+                    };
+                    
+                    console.log(`[WebSocket] authenticated (실패) 이벤트 전송 - socketId: ${socket.id}`);
+                    console.log(`[WebSocket] authenticated (실패) 응답 데이터:`, JSON.stringify(errorResponse));
+                    
+                    socket.emit('authenticated', errorResponse);
                 }
             });
 
