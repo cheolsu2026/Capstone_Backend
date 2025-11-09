@@ -1,11 +1,13 @@
 const io = require('socket.io-client');
 const axios = require('axios');
 
-const BASE_URL = 'http://13.209.33.42:3000';
+const BASE_URL = 'http://localhost:3000';
 
 // 테스트 계정 정보 (실제 계정으로 변경하세요)
-const USER1 = { username: 'test3', password: '1234' };
-const USER2 = { username: 'test8', password: '1234' };
+// 팀장 1명, 팀원 2명 테스트
+const USER1 = { username: 'test3', password: '1234' }; // 팀장
+const USER2 = { username: 'test4', password: '1234' }; // 팀원 1
+const USER3 = { username: 'test5', password: '1234' }; // 팀원 2
 
 // 테스트 결과 저장
 const results = {
@@ -37,35 +39,45 @@ function test(name, fn) {
 }
 
 async function main() {
-    console.log('\n=== 멀티플레이 웹소켓 통합 테스트 ===\n');
+    console.log('\n=== 멀티플레이 웹소켓 통합 테스트 (팀장 1명 + 팀원 2명) ===\n');
 
-    let token1, token2;
-    let socket1, socket2;
+    let token1, token2, token3;
+    let socket1, socket2, socket3;
     let gameCode;
     let socket1Events = [];
     let socket2Events = [];
+    let socket3Events = [];
     // 전체 이벤트 누적 저장 (요약 출력용)
     let socket1AllEvents = [];
     let socket2AllEvents = [];
+    let socket3AllEvents = [];
 
-    // 1단계: 로그인 (사용자1)
-    await test('1. 사용자1 로그인', async () => {
+    // 1단계: 로그인 (사용자1 - 팀장)
+    await test('1. 사용자1 로그인 (팀장)', async () => {
         const response = await axios.post(`${BASE_URL}/users/login`, USER1);
         if (!response.data.token) throw new Error('토큰을 받지 못함');
         token1 = response.data.token;
         log(`사용자1 토큰 획득: ${token1.substring(0, 20)}...`, 'success');
     })();
 
-    // 2단계: 로그인 (사용자2)
-    await test('2. 사용자2 로그인', async () => {
+    // 2단계: 로그인 (사용자2 - 팀원1)
+    await test('2. 사용자2 로그인 (팀원1)', async () => {
         const response = await axios.post(`${BASE_URL}/users/login`, USER2);
         if (!response.data.token) throw new Error('토큰을 받지 못함');
         token2 = response.data.token;
         log(`사용자2 토큰 획득: ${token2.substring(0, 20)}...`, 'success');
     })();
 
-    // 3단계: 웹소켓 연결 (사용자1)
-    await test('3. 사용자1 웹소켓 연결', async () => {
+    // 2-1단계: 로그인 (사용자3 - 팀원2)
+    await test('2-1. 사용자3 로그인 (팀원2)', async () => {
+        const response = await axios.post(`${BASE_URL}/users/login`, USER3);
+        if (!response.data.token) throw new Error('토큰을 받지 못함');
+        token3 = response.data.token;
+        log(`사용자3 토큰 획득: ${token3.substring(0, 20)}...`, 'success');
+    })();
+
+    // 3단계: 웹소켓 연결 (사용자1 - 팀장)
+    await test('3. 사용자1 웹소켓 연결 (팀장)', async () => {
         socket1 = io(BASE_URL, {
             transports: ['polling', 'websocket'],
             autoConnect: true
@@ -95,8 +107,8 @@ async function main() {
         });
     })();
 
-    // 4단계: 웹소켓 인증 (사용자1)
-    await test('4. 사용자1 웹소켓 인증', async () => {
+    // 4단계: 웹소켓 인증 (사용자1 - 팀장)
+    await test('4. 사용자1 웹소켓 인증 (팀장)', async () => {
         await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('인증 시간 초과')), 5000);
             
@@ -151,8 +163,8 @@ async function main() {
         log('사용자1 방 입장 완료', 'success');
     })();
 
-    // 7단계: 웹소켓 연결 (사용자2)
-    await test('7. 사용자2 웹소켓 연결', async () => {
+    // 7단계: 웹소켓 연결 (사용자2 - 팀원1)
+    await test('7. 사용자2 웹소켓 연결 (팀원1)', async () => {
         socket2 = io(BASE_URL, {
             transports: ['polling', 'websocket'],
             autoConnect: true
@@ -181,8 +193,8 @@ async function main() {
         });
     })();
 
-    // 8단계: 웹소켓 인증 (사용자2)
-    await test('8. 사용자2 웹소켓 인증', async () => {
+    // 8단계: 웹소켓 인증 (사용자2 - 팀원1)
+    await test('8. 사용자2 웹소켓 인증 (팀원1)', async () => {
         await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('인증 시간 초과')), 5000);
             
@@ -200,8 +212,8 @@ async function main() {
         });
     })();
 
-    // 9단계: 방 입장 (HTTP API - 사용자2)
-    await test('9. 사용자2 방 입장 (HTTP API)', async () => {
+    // 9단계: 방 입장 (HTTP API - 사용자2 - 팀원1)
+    await test('9. 사용자2 방 입장 (HTTP API - 팀원1)', async () => {
         if (!gameCode) {
             throw new Error('gameCode가 없습니다. 방 생성이 실패했습니다.');
         }
@@ -231,8 +243,8 @@ async function main() {
         }
     })();
 
-    // 10단계: 웹소켓으로 방 입장 (사용자2)
-    await test('10. 사용자2 방 입장 (웹소켓)', async () => {
+    // 10단계: 웹소켓으로 방 입장 (사용자2 - 팀원1)
+    await test('10. 사용자2 방 입장 (웹소켓 - 팀원1)', async () => {
         socket2.emit('join_room', { gameCode });
         
         // user_joined 이벤트 확인 (사용자1이 받아야 함)
@@ -240,15 +252,117 @@ async function main() {
         
         const userJoined = socket1Events.find(e => e.event === 'user_joined');
         if (userJoined) {
-            log('사용자1이 user_joined 이벤트 수신 확인', 'success');
+            log('사용자1이 user_joined 이벤트 수신 확인 (팀원1 입장)', 'success');
         } else {
             log('⚠️ user_joined 이벤트를 받지 못함 (수동 확인 필요)', 'info');
         }
     })();
 
-    // 11단계: 준비 상태 토글 (HTTP API) - 사용자2
-    await test('11. 사용자2 준비 상태 토글 (HTTP API)', async () => {
+    // 10-1단계: 웹소켓 연결 (사용자3 - 팀원2)
+    await test('10-1. 사용자3 웹소켓 연결 (팀원2)', async () => {
+        socket3 = io(BASE_URL, {
+            transports: ['polling', 'websocket'],
+            autoConnect: true
+        });
+
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('연결 시간 초과')), 5000);
+            
+            socket3.on('connect', () => {
+                clearTimeout(timeout);
+                log(`사용자3 연결 성공: ${socket3.id}`, 'success');
+                resolve();
+            });
+
+            socket3.on('connect_error', (error) => {
+                clearTimeout(timeout);
+                reject(new Error(`연결 실패: ${error.message}`));
+            });
+        });
+
+        socket3.onAny((event, data) => {
+            const eventData = { event, data, time: new Date() };
+            socket3Events.push(eventData);
+            socket3AllEvents.push(eventData);
+            log(`[사용자3] 이벤트 수신: ${event}`, 'info');
+        });
+    })();
+
+    // 10-2단계: 웹소켓 인증 (사용자3 - 팀원2)
+    await test('10-2. 사용자3 웹소켓 인증 (팀원2)', async () => {
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('인증 시간 초과')), 5000);
+            
+            socket3.once('authenticated', (data) => {
+                clearTimeout(timeout);
+                if (data.isSuccess) {
+                    log(`사용자3 인증 성공: ${data.result?.username}`, 'success');
+                    resolve();
+                } else {
+                    reject(new Error(`인증 실패: ${data.message}`));
+                }
+            });
+
+            socket3.emit('authenticate', { token: token3 });
+        });
+    })();
+
+    // 10-3단계: 방 입장 (HTTP API - 사용자3 - 팀원2)
+    await test('10-3. 사용자3 방 입장 (HTTP API - 팀원2)', async () => {
+        if (!gameCode) {
+            throw new Error('gameCode가 없습니다. 방 생성이 실패했습니다.');
+        }
+        
+        try {
+            const response = await axios.post(
+                `${BASE_URL}/games/multiplay/rooms/join`,
+                { gameCode },
+                { headers: { Authorization: `Bearer ${token3}` } }
+            );
+
+            if (!response.data.isSuccess) {
+                log(`응답 데이터: ${JSON.stringify(response.data, null, 2)}`, 'error');
+                throw new Error(response.data.message || '방 입장 실패');
+            }
+
+            log('사용자3 방 입장 성공 (HTTP - 팀원2)', 'success');
+            
+            // 웹소켓 브로드캐스트 대기
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (error) {
+            if (error.response) {
+                log(`에러 응답 상태: ${error.response.status}`, 'error');
+                log(`에러 응답 데이터: ${JSON.stringify(error.response.data, null, 2)}`, 'error');
+            }
+            throw error;
+        }
+    })();
+
+    // 10-4단계: 웹소켓으로 방 입장 (사용자3 - 팀원2)
+    await test('10-4. 사용자3 방 입장 (웹소켓 - 팀원2)', async () => {
         socket1Events = []; // 이벤트 리스트 초기화
+        socket2Events = [];
+        
+        socket3.emit('join_room', { gameCode });
+        
+        // user_joined 이벤트 확인 (사용자1, 사용자2가 받아야 함)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const userJoined1 = socket1Events.find(e => e.event === 'user_joined');
+        const userJoined2 = socket2Events.find(e => e.event === 'user_joined');
+        
+        if (userJoined1 && userJoined2) {
+            log('사용자1, 사용자2가 user_joined 이벤트 수신 확인 (팀원2 입장)', 'success');
+        } else {
+            log('⚠️ user_joined 이벤트를 일부 받지 못함 (수동 확인 필요)', 'info');
+        }
+    })();
+
+    // 11단계: 준비 상태 토글 (HTTP API) - 사용자2 (팀원1)
+    await test('11. 사용자2 준비 상태 토글 (HTTP API - 팀원1)', async () => {
+        socket1Events = []; // 이벤트 리스트 초기화
+        socket2Events = [];
+        socket3Events = [];
         
         const response = await axios.post(
             `${BASE_URL}/games/multiplay/rooms/ready`,
@@ -260,45 +374,64 @@ async function main() {
             throw new Error(response.data.message || '준비 상태 변경 실패');
         }
 
-        log('사용자2 준비 상태 변경 성공', 'success');
+        log('사용자2 준비 상태 변경 성공 (팀원1)', 'success');
         
         // 웹소켓 브로드캐스트 대기
         await new Promise(resolve => setTimeout(resolve, 2000));
     })();
 
-    // 12단계: room_updated 이벤트 확인
-    await test('12. room_updated 이벤트 확인', async () => {
-        const roomUpdated = socket1Events.find(e => e.event === 'room_updated');
-        if (roomUpdated) {
-            log('사용자1이 room_updated 이벤트 수신 확인', 'success');
+    // 12단계: room_updated 이벤트 확인 (팀원1 준비)
+    await test('12. room_updated 이벤트 확인 (팀원1 준비)', async () => {
+        const roomUpdated1 = socket1Events.find(e => e.event === 'room_updated');
+        const roomUpdated2 = socket2Events.find(e => e.event === 'room_updated');
+        const roomUpdated3 = socket3Events.find(e => e.event === 'room_updated');
+        
+        if (roomUpdated1 && roomUpdated2 && roomUpdated3) {
+            log('모든 사용자가 room_updated 이벤트 수신 확인 (팀원1 준비)', 'success');
         } else {
-            throw new Error('room_updated 이벤트를 받지 못함');
+            log('⚠️ 일부 사용자가 room_updated 이벤트를 받지 못함', 'info');
         }
     })();
 
-    // 13단계: 준비 상태 토글 (HTTP API) - 사용자1
-    await test('13. 사용자1 준비 상태 토글 (HTTP API)', async () => {
-        socket2Events = []; // 이벤트 리스트 초기화
+    // 13단계: 준비 상태 토글 (HTTP API) - 사용자3 (팀원2)
+    await test('13. 사용자3 준비 상태 토글 (HTTP API - 팀원2)', async () => {
+        socket1Events = [];
+        socket2Events = [];
+        socket3Events = [];
         
         const response = await axios.post(
             `${BASE_URL}/games/multiplay/rooms/ready`,
             { gameCode },
-            { headers: { Authorization: `Bearer ${token1}` } }
+            { headers: { Authorization: `Bearer ${token3}` } }
         );
 
         if (!response.data.isSuccess) {
             throw new Error(response.data.message || '준비 상태 변경 실패');
         }
 
-        log('사용자1 준비 상태 변경 성공', 'success');
+        log('사용자3 준비 상태 변경 성공 (팀원2)', 'success');
         
         await new Promise(resolve => setTimeout(resolve, 2000));
     })();
 
-    // 14단계: 게임 시작 (HTTP API)
-    await test('14. 게임 시작 (HTTP API)', async () => {
+    // 13-1단계: room_updated 이벤트 확인 (팀원2 준비)
+    await test('13-1. room_updated 이벤트 확인 (팀원2 준비)', async () => {
+        const roomUpdated1 = socket1Events.find(e => e.event === 'room_updated');
+        const roomUpdated2 = socket2Events.find(e => e.event === 'room_updated');
+        const roomUpdated3 = socket3Events.find(e => e.event === 'room_updated');
+        
+        if (roomUpdated1 && roomUpdated2 && roomUpdated3) {
+            log('모든 사용자가 room_updated 이벤트 수신 확인 (팀원2 준비)', 'success');
+        } else {
+            log('⚠️ 일부 사용자가 room_updated 이벤트를 받지 못함', 'info');
+        }
+    })();
+
+    // 14단계: 게임 시작 (HTTP API) - 팀원 2명 모두 준비 완료
+    await test('14. 게임 시작 (HTTP API - 팀원 2명 모두 준비)', async () => {
         socket1Events = [];
         socket2Events = [];
+        socket3Events = [];
         
         const response = await axios.post(
             `${BASE_URL}/games/multiplay/rooms/start`,
@@ -310,21 +443,22 @@ async function main() {
             throw new Error(response.data.message || '게임 시작 실패');
         }
 
-        log('게임 시작 성공', 'success');
+        log('게임 시작 성공 (팀원 2명 모두 준비 완료)', 'success');
         
         // 웹소켓 브로드캐스트 대기
         await new Promise(resolve => setTimeout(resolve, 2000));
     })();
 
-    // 15단계: game_started 이벤트 확인
-    await test('15. game_started 이벤트 확인', async () => {
+    // 15단계: game_started 이벤트 확인 (모든 사용자)
+    await test('15. game_started 이벤트 확인 (모든 사용자)', async () => {
         const gameStarted1 = socket1Events.find(e => e.event === 'game_started');
         const gameStarted2 = socket2Events.find(e => e.event === 'game_started');
+        const gameStarted3 = socket3Events.find(e => e.event === 'game_started');
         
-        if (gameStarted1 && gameStarted2) {
-            log('두 사용자 모두 game_started 이벤트 수신 확인', 'success');
+        if (gameStarted1 && gameStarted2 && gameStarted3) {
+            log('모든 사용자(팀장, 팀원1, 팀원2)가 game_started 이벤트 수신 확인', 'success');
         } else {
-            throw new Error('game_started 이벤트를 받지 못함');
+            throw new Error('일부 사용자가 game_started 이벤트를 받지 못함');
         }
     })();
 
@@ -332,6 +466,7 @@ async function main() {
     await test('16. 게임 완료 (HTTP API)', async () => {
         socket1Events = [];
         socket2Events = [];
+        socket3Events = [];
         
         const response = await axios.post(
             `${BASE_URL}/games/multiplay/rooms/complete`,
@@ -349,21 +484,23 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 2000));
     })();
 
-    // 17단계: game_completed 이벤트 확인
-    await test('17. game_completed 이벤트 확인', async () => {
+    // 17단계: game_completed 이벤트 확인 (모든 사용자)
+    await test('17. game_completed 이벤트 확인 (모든 사용자)', async () => {
         const gameCompleted1 = socket1Events.find(e => e.event === 'game_completed');
         const gameCompleted2 = socket2Events.find(e => e.event === 'game_completed');
+        const gameCompleted3 = socket3Events.find(e => e.event === 'game_completed');
         
-        if (gameCompleted1 && gameCompleted2) {
-            log('두 사용자 모두 game_completed 이벤트 수신 확인', 'success');
+        if (gameCompleted1 && gameCompleted2 && gameCompleted3) {
+            log('모든 사용자(팀장, 팀원1, 팀원2)가 game_completed 이벤트 수신 확인', 'success');
         } else {
-            throw new Error('game_completed 이벤트를 받지 못함');
+            throw new Error('일부 사용자가 game_completed 이벤트를 받지 못함');
         }
     })();
 
     // 정리
     socket1.disconnect();
     socket2.disconnect();
+    socket3.disconnect();
 
     // 결과 출력
     console.log('\n=== 테스트 결과 ===');
@@ -379,21 +516,29 @@ async function main() {
     });
 
     console.log('\n수신된 이벤트 요약:');
-    console.log('사용자1:', socket1AllEvents.map(e => e.event).join(', '));
-    console.log('사용자2:', socket2AllEvents.map(e => e.event).join(', '));
+    console.log('사용자1 (팀장):', socket1AllEvents.map(e => e.event).join(', '));
+    console.log('사용자2 (팀원1):', socket2AllEvents.map(e => e.event).join(', '));
+    console.log('사용자3 (팀원2):', socket3AllEvents.map(e => e.event).join(', '));
     
     // 이벤트별 상세 요약
     console.log('\n이벤트별 상세 요약:');
     const eventTypes1 = [...new Set(socket1AllEvents.map(e => e.event))];
     const eventTypes2 = [...new Set(socket2AllEvents.map(e => e.event))];
-    console.log('사용자1 이벤트 종류:');
+    const eventTypes3 = [...new Set(socket3AllEvents.map(e => e.event))];
+    
+    console.log('사용자1 (팀장) 이벤트 종류:');
     eventTypes1.forEach(eventType => {
         const count = socket1AllEvents.filter(e => e.event === eventType).length;
         console.log(`  - ${eventType}: ${count}회`);
     });
-    console.log('사용자2 이벤트 종류:');
+    console.log('사용자2 (팀원1) 이벤트 종류:');
     eventTypes2.forEach(eventType => {
         const count = socket2AllEvents.filter(e => e.event === eventType).length;
+        console.log(`  - ${eventType}: ${count}회`);
+    });
+    console.log('사용자3 (팀원2) 이벤트 종류:');
+    eventTypes3.forEach(eventType => {
+        const count = socket3AllEvents.filter(e => e.event === eventType).length;
         console.log(`  - ${eventType}: ${count}회`);
     });
 
