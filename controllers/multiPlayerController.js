@@ -164,10 +164,10 @@ async function joinRoom(req, res) {
             });
         }
 
-        // 3. 룸 참가자 수 확인 (최대 2명)
+        // 3. 룸 참가자 수 확인 (최대 4명: 팀장 1명 + 팀원 3명)
         const participantCount = await gameModel.getRoomParticipantCount(room.id);
         
-        if (participantCount >= 2) { // ⭐ 만약 인원 제한을 늘리고 싶다면? 2를 원하는 숫자로 수정정
+        if (participantCount >= 4) { // 팀장 1명 + 팀원 3명 = 총 4명
             return res.status(400).json({
                 isSuccess: false,
                 code: "ROOM400",
@@ -405,13 +405,17 @@ async function startGame(req, res) {
 
         // 4. 팀장을 제외한 다른 참가자들이 준비 상태인지 확인
         const participants = await gameModel.getRoomParticipants(room.id);
-        const notReadyParticipants = participants.filter(p => !p.is_ready && !p.is_host);
-        
-        if (notReadyParticipants.length > 0) {
+        const teamMembers = participants.filter(p => !p.is_host); // 팀원만 필터링
+        const notReadyTeamMembers = teamMembers.filter(p => !p.is_ready);
+
+        // 게임 시작 조건:
+        // - 팀원이 1명만 있으면: 그 1명만 준비하면 시작 가능
+        // - 팀원이 2명 이상이면: 모든 팀원이 준비해야 시작 가능
+        if (teamMembers.length > 1 && notReadyTeamMembers.length > 0) {
             return res.status(400).json({
                 isSuccess: false,
                 code: "GAME400",
-                message: "팀장을 제외한 모든 참가자가 준비 상태가 아닙니다"
+                message: "팀원이 2명 이상일 경우 모든 팀원이 준비 상태여야 합니다"
             });
         }
 
