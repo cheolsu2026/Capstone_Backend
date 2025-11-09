@@ -12,7 +12,13 @@ async function createPlanetWithConnection(conn, ownerId, title) {
 // 행성 목록 조회 - 기본: 알파벳 순서로 전체 나열
 async function findAll() {
     const [rows] = await pool.query(
-        `SELECT p.id, u.username, p.title, p.visit_count, p.created_at
+        `SELECT
+            p.id,
+            u.username,
+            u.nickname AS ownerNickname,
+            p.title,
+            p.visit_count,
+            p.created_at
         FROM planets p
         JOIN users u ON p.owner_id = u.id
         ORDER BY u.username ASC`
@@ -39,7 +45,11 @@ async function getPlanetIdByUsername(username) {
 // 행성 상세 정보 조회 (username 기반)
 async function findByUsername(username) {
     const [rows] = await pool.query(
-        `SELECT p.*, u.nickname AS ownerNickname, u.username, u.profile_image_url
+        `SELECT
+            p.*,
+            u.nickname AS ownerNickname,
+            u.username,
+            u.profile_image_url
         FROM planets p
         JOIN users u ON p.owner_id = u.id
         WHERE u.username = ?`,
@@ -219,8 +229,15 @@ async function removeFavoriteByUsername(userId, username) {
 // 즐겨찾기 목록 조회
 async function findFavoritesByUserId(userId) {
     const [rows] = await pool.query(
-        `SELECT p.id AS planetId, u.username, p.title, p.visit_count, p.created_at, 
-               u.profile_image_url, pf.favorited_at
+        `SELECT
+            p.id AS planetId,
+            u.username,
+            u.nickname As ownerNickname,
+            p.title,
+            p.visit_count,
+            p.created_at, 
+            u.profile_image_url,
+            pf.favorited_at
         FROM planet_favorites pf
         JOIN planets p ON pf.planet_id = p.id
         JOIN users u ON p.owner_id = u.id
@@ -259,7 +276,11 @@ async function updateMyPlanet(userId, title, profileImage) {
         
         // 수정된 정보 조회
         const [planetRows] = await conn.query(
-            `SELECT p.*, u.username, u.profile_image_url
+            `SELECT
+                p.*,
+                u.username,
+                u.nickname AS ownerNickname,
+                u.profile_image_url
             FROM planets p
             JOIN users u ON p.owner_id = u.id
             WHERE p.owner_id = ?`,
