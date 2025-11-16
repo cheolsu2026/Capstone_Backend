@@ -30,8 +30,8 @@ const wsService = new WebSocketService(server);
 // 웹소켓 서비스를 전역으로 사용할 수 있도록 설정
 global.wsService = wsService;
 
-server.listen(PORT, HOST, () => { // AWS 사용시 해당 주석 해제
-// server.listen(3000, () => { // 로컬 사용 시 해당 주석 해제
-    console.log(`서버 실행 중: http://${HOST}:${PORT}`);
-    // console.log(`서버 실행 중: http://localhost:3000`);
+// server.listen(PORT, HOST, () => { // AWS 사용시 해당 주석 해제
+server.listen(3000, () => { // 로컬 사용 시 해당 주석 해제
+    // console.log(`서버 실행 중: http://${HOST}:${PORT}`);
+    console.log(`서버 실행 중: http://localhost:3000`);
 });
